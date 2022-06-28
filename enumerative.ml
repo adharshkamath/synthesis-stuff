@@ -57,7 +57,7 @@ let isCorrect p inputs outputs = (evaluateAll p inputs = outputs)
 
 let synthesize inputs outputs =
   let pList = [Zero; One; In] in
-  let synth_h loops =
+  let synth_h loops pList =
     if loops = 0 then raise TimeOut else
     let pList = grow pList in
     let pList = eliminateEquivalents pList inputs in
@@ -66,5 +66,6 @@ let synthesize inputs outputs =
       | d::ds -> if isCorrect d inputs outputs then d else check ds
       | [] -> raise ProgramNotFound in
     check pList in
-  synth_h 5
+  synth_h 10 pList
 
+let _ = Printf.printf "%s\n" (show (synthesize [0;0;0] [0;0;0]))
