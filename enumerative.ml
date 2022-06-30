@@ -6,19 +6,18 @@ type exp =
     | Negate: exp -> exp
     | Plus: exp * exp -> exp
     | Mult: exp * exp -> exp
-    | IfElse: exp * exp * exp -> exp
+    | IfNonNeg: exp * exp * exp -> exp
 
-exception ProgramNotFound
 exception TimeOut
 
 let rec show exp = match exp with
-  | Zero -> "0"
-  | One -> "1"
-  | In -> " (Input) "
+  | Zero -> "(0)"
+  | One -> "(1)"
+  | In -> "(Input)"
   | Negate x -> " - " ^ (show x)
   | Plus (a, b) -> show a ^ " + " ^ show b
   | Mult (a, b) -> show a ^ " * " ^ show b
-  | IfElse (a, b, c) -> "IfNonNeg " ^ show a ^ " then " ^ show b ^ " else " ^ show c
+  | IfNonNeg (a, b, c) -> "IfNonNeg " ^ show a ^ " then " ^ show b ^ " else " ^ show c
 
 let rec evaluate exp input = match exp with
   | Zero -> 0
@@ -27,7 +26,7 @@ let rec evaluate exp input = match exp with
   | Negate x -> 0 - evaluate x input
   | Plus (a, b) -> evaluate a input + evaluate b input
   | Mult (a, b) -> evaluate a input * evaluate b input
-  | IfElse (a, b, c) -> if (evaluate a input > 0) then evaluate b input else evaluate c input
+  | IfNonNeg (a, b, c) -> if (evaluate a input > 0) then evaluate b input else evaluate c input
 
 let rec evaluateAll p inputs = List.map (evaluate p) inputs
 
@@ -44,7 +43,7 @@ let grow pList =
   let plList = List.flatten (List.map (fun a -> List.map (fun b -> Plus (a, b)) pList) pList) in
   let mlList = List.flatten (List.map (fun a -> List.map (fun b -> Mult (a, b)) pList) pList) in
   let ifnList = List.flatten (List.map (fun x ->
-      List.flatten (List.map (fun a -> List.map (fun b -> IfElse (x, a, b)) pList) pList)) pList) in
+      List.flatten (List.map (fun a -> List.map (fun b -> IfNonNeg (x, a, b)) pList) pList)) pList) in
   List.concat (expansion::nList::plList::mlList::ifnList::[pList])
 
 let eliminateEquivalents pList inputs =
