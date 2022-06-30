@@ -14,7 +14,7 @@ exception TimeOut
 let rec show exp = match exp with
   | Zero -> "0"
   | One -> "1"
-  | In -> " in "
+  | In -> " (Input) "
   | Negate x -> " - " ^ (show x)
   | Plus (a, b) -> show a ^ " + " ^ show b
   | Mult (a, b) -> show a ^ " * " ^ show b
@@ -41,31 +41,29 @@ let accountedFor pList p inputs =
 let grow pList =
   let expansion = [] in
   let nList = List.map (fun p -> Negate p) pList in
-  let plList = List.map2 (fun a b -> Plus (a, b)) pList pList in
-  let mlList = List.map2 (fun a b -> Mult (a, b)) pList pList in
-  let ifnList = List.flatten (List.map (fun x -> List.map2 (fun a b -> IfElse (x, a, b)) pList pList) pList) in
-  List.concat (expansion::nList::plList::mlList::ifnList::[])
+  let plList = List.flatten (List.map (fun a -> List.map (fun b -> Plus (a, b)) pList) pList) in
+  let mlList = List.flatten (List.map (fun a -> List.map (fun b -> Mult (a, b)) pList) pList) in
+  let ifnList = List.flatten (List.map (fun x ->
+      List.flatten (List.map (fun a -> List.map (fun b -> IfElse (x, a, b)) pList) pList)) pList) in
+  List.concat (expansion::nList::plList::mlList::ifnList::[pList])
 
 let eliminateEquivalents pList inputs =
   let prunedList = [] in
-  let elimeq_h pList = match pList with
-    | d::ds -> if accountedFor prunedList d inputs then prunedList else d::prunedList
+  let rec elimeq_h pList prunedList = match pList with
+    | d::ds -> if accountedFor prunedList d inputs then elimeq_h ds prunedList else d::(elimeq_h ds prunedList)
     | [] -> prunedList in
-  elimeq_h pList
+  elimeq_h pList prunedList
 
-let isCorrect p inputs outputs = (evaluateAll p inputs = outputs)
+let isCorrect inputs outputs p = (evaluateAll p inputs = outputs)
 
-let synthesize inputs outputs =
-  let pList = [Zero; One; In] in
-  let synth_h loops pList =
-    if loops = 0 then raise TimeOut else
-    let pList = grow pList in
-    let pList = eliminateEquivalents pList inputs in
-    let rec check pList =
-      match pList with
-      | d::ds -> if isCorrect d inputs outputs then d else check ds
-      | [] -> raise ProgramNotFound in
-    check pList in
-  synth_h 10 pList
+let rec synth_h loops pList inputs outputs =
+  if loops = 0 then raise TimeOut else
+    begin
+      let pList = eliminateEquivalents (grow pList) inputs in
+      let candList = List.filter (isCorrect inputs outputs) pList in
+      if candList = [] then synth_h (loops - 1) pList inputs outputs else List.hd candList
+    end
 
-let _ = Printf.printf "%s\n" (show (synthesize [0;0;0] [0;0;0]))
+let synthesize inputs outputs = synth_h 10 [Zero; One; In] inputs outputs
+
+let _ = (Printf.printf "%s\n") ((show) (synthesize [1;2;3;-1;-2;-3] [1;4;9;2;2;2]))
